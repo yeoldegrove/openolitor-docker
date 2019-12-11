@@ -1,0 +1,9 @@
+{   
+    "ENVIRONMENTS" : {
+        "dev": {
+            "m1": "http://server:9003/m1/"
+        }
+    }, 
+    "EMAIL_TO_ADDRESS": {
+    }
+}

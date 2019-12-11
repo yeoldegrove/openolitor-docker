@@ -1,0 +1,113 @@
+version: '2'
+
+services:
+  db:
+    image: mariadb
+    restart: unless-stopped
+    environment:
+      - MYSQL_DATABASE=@@MYSQL_DATABASE@@
+      - MYSQL_PASSWORD=@@MYSQL_PASSWORD@@
+      - MYSQL_ROOT_PASSWORD=@@MYSQL_ROOT_PASSWORD@@
+      - MYSQL_USER=@@MYSQL_USER@@
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+    ## depending on network setup
+    # ports
+    #  - 3306
+    # networks:
+    #   - openolitor
+
+  s3:
+    image: minio/minio
+    restart: unless-stopped
+    volumes:
+      - ./data/s3:/data
+    environment:
+      MINIO_ACCESS_KEY=@@MINIO_ACCESS_KEY@@
+      MINIO_SECRET_KEY=@@MINIO_SECRET_KEY@@
+    command: server /data
+    ## depending on network setup
+    # ports:
+    #  - 9000
+    # networks:
+    #   - openolitor
+    #   - traefik
+
+  server:
+    image: openolitor-server
+    restart: unless-stopped
+    volumes:
+      # server settings
+      - ./data/server/openolitor-server-int.conf:/opt/openolitor-server/src/main/resources/openolitor-server-int.conf
+      - ./data/server/sbtopts:/opt/openolitor-server/.sbtopts
+      # speed up "sbt build"
+      - ./data/server/.ivy2:/opt/openolitor-server/.ivy2
+      - ./data/server/.sbt:/opt/openolitor-server/.sbt
+      - ./data/server/target:/opt/openolitor-server/target
+    depends_on:
+      - db
+    ## depending on network setup
+    # ports:
+    #   - 9003
+    #   - 9004
+    #   - 9005
+    # networks:
+    #   - traefik_proxy
+    #   - openolitor
+    ## reverse proxy example - traefik v1
+    # labels:
+    #   - "traefik.enable=true"
+    #   - "traefik.backend=openolitor-server"
+    #   - "traefik.frontend.rule=Host:@@SERVER_URL@@"
+    #   - "traefik.port=9003"
+    #   - "traefik.docker.network=traefik_proxy"
+
+  client-admin:
+    image: openolitor-client-admin
+    restart: unless-stopped
+    volumes:
+      - ./data/client/variables.json:/opt/openolitor-client-admin/variables.json
+    depends_on:
+      - db
+      - server
+    ## depending on network setup
+    # ports:
+    #   - 9000
+    # networks:
+    #   - traefik_proxy
+    #   - openolitor
+    ## reverse proxy example - traefik v1
+    # labels:
+    #   - "traefik.enable=true"
+    #   - "traefik.backend=openolitor-client-kundenportal"
+    #   - "traefik.frontend.rule=Host:@@URL@@;PathPrefixStrip:/admin"
+    #   - "traefik.port=9000"
+    #   - "traefik.docker.network=traefik_proxy"
+
+  client-kundenportal:
+    image: openolitor-client-kundenportal
+    restart: unless-stopped
+    volumes:
+      - ./data/client/variables.json:/opt/openolitor-client-kundenportal/variables.json
+    depends_on:
+      - db
+      - server
+    # ports:
+    #   - 9000
+    networks:
+      - traefik_proxy
+      - openolitor
+    ## reverse proxy example - traefik v1
+    # labels:
+    #   - "traefik.enable=true"
+    #   - "traefik.backend=openolitor-client-kundenportal"
+    #   - "traefik.frontend.rule=Host:@@URL@@"
+    #   - "traefik.port=9000"
+    #   - "traefik.docker.network=traefik_proxy"
+
+## depending on network setup
+# networks:
+#   openolitor:
+#   traefik_proxy:
+#     external:
+#       name: traefik_proxy

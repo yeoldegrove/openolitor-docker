@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# change parameters here
+URL="https://openolitor.your-domain.at"
+SERVER_URL="https://openolitor-server.your-domain.at"
+MAIL_FROM="openolitor@your-domain.at"
+MAIL_SERVER="smtp.your-domain.de"
+MAIL_PORT="587"
+MAIL_USER="openolitor"
+MAIL_PASSWORD="secret"
+MINIO_ACCESS_KEY="openolitor"
+MINIO_SECRET_KEY="secret"
+MYSQL_DATABASE="openolitor"
+MYSQL_PASSWORD="secret"
+MYSQL_ROOT_PASSWORD="secret"
+MYSQL_USER="openolitor"
+
+
+files="docker-compose.yml
+openolitor-server-int.conf"
+
+variables="URL
+SERVER_URL
+MAIL_FROM
+MAIL_SERVER
+MAIL_PORT
+MAIL_USER
+MAIL_PASSWORD
+MINIO_ACCESS_KEY
+MINIO_SECRET_KEY
+MYSQL_DATABASE
+MYSQL_PASSWORD
+MYSQL_ROOT_PASSWORD
+MYSQL_USER"
+
+for file in ${files}; do
+  cp ${file}.template ${file}
+  for variable in ${variables}; do
+    # echo ${variable} ${!variable}
+    echo sed -i "s#@@${variable}@@#${!variable}#g" ${file}
+    sed -i "s#@@${variable}@@#${!variable}#g" ${file}
+  done
+done

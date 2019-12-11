@@ -1,0 +1,5 @@
+docker-compose.yml
+openolitor-server-int.conf
+data*
+setup.sh
+**/Dockerfile.*

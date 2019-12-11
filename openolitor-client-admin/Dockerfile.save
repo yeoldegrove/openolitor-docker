@@ -1,0 +1,43 @@
+FROM ubuntu
+
+ENV PACKAGE openolitor-client-admin
+ENV USER openolitor
+ENV VERSION 2.3.2
+ENV ENVIRONMENT DEV
+ENV DEBIAN_FRONTEND noninteractive
+
+RUN groupadd -g 2000 ${USER} && useradd -u 2000 -g 2000 -m -s /bin/bash -d /opt/${PACKAGE} ${USER} && \
+    chown -R ${USER}:${USER} /opt/${PACKAGE}
+
+RUN apt-get update && \
+    apt-get -y install gnupg vim git wget curl
+
+RUN apt-get update && \
+    apt-get -y install npm
+
+RUN npm install -g grunt-cli bower
+
+RUN cd /opt && \
+    curl -L https://github.com/OpenOlitor/${PACKAGE}/archive/${VERSION}.tar.gz | tar xz && \
+    rm -rf /opt/${PACKAGE} && \
+    mv /opt/${PACKAGE}-${VERSION} /opt/${PACKAGE} && \
+    chown -R ${USER}:${USER} /opt/${PACKAGE}
+
+USER ${USER}
+# workaround monkey patch
+RUN sed -ibck 's/"angular-gettext": .*/"angular-gettext": "^2.3.11",/g' /opt/${PACKAGE}/bower.json
+RUN cd /opt/${PACKAGE} && npm install && \
+    grunt build --env=${ENVIRONMENT} --buildnr=$(date --iso-8601=s)
+
+# settings
+RUN sed -i "s/hostname:.*/hostname: '0.0.0.0',/g" /opt/${PACKAGE}/Gruntfile.js
+
+EXPOSE 9000
+
+# DEBUG
+USER root
+RUN apt-get update && apt-get -y install iproute2 netcat-openbsd
+
+USER ${USER}
+WORKDIR /opt/${PACKAGE}
+ENTRYPOINT ["/usr/bin/env", "grunt", "-d", "serve"]
